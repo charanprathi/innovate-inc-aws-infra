@@ -17,6 +17,10 @@ resource "aws_subnet" "public" {
   availability_zone       = var.azs[count.index]
   map_public_ip_on_launch = true
   tags = { Name = "${var.name}-public-${count.index}" }
+
+  lifecycle {
+    ignore_changes = [tags, tags_all]
+  }
 }
 
 resource "aws_subnet" "private" {
@@ -25,6 +29,10 @@ resource "aws_subnet" "private" {
   cidr_block        = var.private_subnet_cidrs[count.index]
   availability_zone = var.azs[count.index]
   tags = { Name = "${var.name}-private-${count.index}" }
+
+  lifecycle {
+    ignore_changes = [tags, tags_all]
+  }
 }
 
 resource "aws_eip" "nat" {
@@ -50,11 +58,17 @@ resource "aws_route_table" "public" {
 
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.this.id
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.this.id
+  tags   = { Name = "${var.name}-private-rt" }
+
+  lifecycle {
+    ignore_changes = [route]
   }
-  tags = { Name = "${var.name}-private-rt" }
+}
+
+resource "aws_route" "private_nat" {
+  route_table_id         = aws_route_table.private.id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.this.id
 }
 
 resource "aws_route_table_association" "public" {
