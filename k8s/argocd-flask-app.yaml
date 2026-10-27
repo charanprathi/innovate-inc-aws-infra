@@ -6,11 +6,11 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME.git'
+    repoURL: https://github.com/charanprathi/innovate-inc-aws-infra.git
     targetRevision: main
-    path: k8s
+    path: k8s/apps/dev
   destination:
-    server: 'https://kubernetes.default.svc'
+    server: https://kubernetes.default.svc
     namespace: dev
   syncPolicy:
     automated:
