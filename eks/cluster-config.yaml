@@ -1,0 +1,26 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: innovate-inc-cluster
+  region: us-east-1
+  version: "1.31"
+
+vpc:
+  id: "vpc-05a489f2079aa8085"
+  subnets:
+    private:
+      us-east-1a: { id: "subnet-09c80cf1f14d324db" }
+      us-east-1b: { id: "subnet-085b249369e9b2b36" }
+    public:
+      us-east-1a: { id: "subnet-013272453a073a268" }
+      us-east-1b: { id: "subnet-046670ac2299e215e" }
+
+nodeGroups:
+  - name: shared-workers-3
+    instanceType: t3.medium
+    desiredCapacity: 2
+    minSize: 2
+    maxSize: 4
+    privateNetworking: true
+    volumeSize: 20
