@@ -371,3 +371,4 @@ These are real faults found while building this platform. They are recorded beca
 - **Phase 6:** React single-page app on S3 and CloudFront.
 - **Phase 7:** CloudWatch alarms integrated with an alert triage and notification pipeline.
 - **Housekeeping:** reconcile `eks/cluster-config.yaml` with the live cluster, bring Fargate profiles and add-ons under code, switch Terraform locking to `use_lockfile`, extend the CI pipeline to push to the staging and prod repositories.
+# CI Pipeline Test
