@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: flask-app
-          image: 811165582680.dkr.ecr.us-east-1.amazonaws.com/innovate-inc-app:latest
+          image: 811165582680.dkr.ecr.us-east-1.amazonaws.com/innovate-inc-app-dev:3274b183d0907e1b3ee9f881ceca4d9940cca2bc
           ports:
             - containerPort: 5000
           env:
