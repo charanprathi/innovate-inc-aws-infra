@@ -44,4 +44,5 @@ resource "aws_db_instance" "dev_postgres" {
   
   skip_final_snapshot    = true
   publicly_accessible    = false
+  apply_immediately      = true
 }
