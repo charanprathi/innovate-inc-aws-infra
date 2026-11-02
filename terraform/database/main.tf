@@ -37,7 +37,7 @@ resource "aws_db_instance" "dev_postgres" {
   
   db_name                = "innovate_dev"
   username               = "dbadmin"
-  password               = "DevPassword2026!" 
+  password               = var.db_password
   
   vpc_security_group_ids = [aws_security_group.dev_db_sg.id]
   db_subnet_group_name   = aws_db_subnet_group.dev_db_subnets.name 
