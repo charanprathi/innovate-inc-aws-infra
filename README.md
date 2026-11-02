@@ -161,7 +161,7 @@ flowchart LR
 - **EKS cluster** `innovate-inc-cluster` in the prod VPC, running **Fargate only** with profiles for the `kube-system`, `dev` and `argocd` namespaces.
 - **CoreDNS** add-on, required for in-cluster DNS on Fargate.
 - **AWS Load Balancer Controller** installed with Helm and an IAM role bound through the cluster's OIDC provider (IRSA).
-- **Ingress** (`k8s/dev-ingress.yaml`): internet-facing ALB, HTTP and HTTPS listeners, ACM certificate, host rule for `emergencydashboard.online`, IP target type.
+- **Ingress** (`k8s/apps/dev/dev-ingress.yaml`): internet-facing ALB, HTTP and HTTPS listeners, ACM certificate, host rule for `emergencydashboard.online`, IP target type.
 - **RDS PostgreSQL** `innovate-dev-db` in the dev VPC's private subnets.
 - **ArgoCD** installed in the `argocd` namespace.
 
@@ -191,8 +191,9 @@ innovate-inc-aws-infra/
 ├── eks/
 │   └── cluster-config.yaml   eksctl cluster definition (see drift note below)
 ├── k8s/
-│   ├── flask-app-dev.yaml    Deployment and Service for the app (namespace dev)
-│   ├── dev-ingress.yaml      ALB Ingress: HTTPS, ACM cert, host rule
+│   ├── apps/dev/             Manifests synced by ArgoCD into namespace dev
+│   │   ├── flask-app-dev.yaml    Deployment and Service for the app
+│   │   └── dev-ingress.yaml      ALB Ingress: HTTPS, ACM cert, host rule
 │   ├── argocd-flask-app.yaml ArgoCD Application definition
 │   ├── namespaces.yaml       Namespace definitions
 │   ├── network-policy.yaml   NetworkPolicy manifests
@@ -268,8 +269,8 @@ Install the chart from `https://aws.github.io/eks-charts` into `kube-system` wit
 ### 5. Deploy the application and ingress
 ```bash
 kubectl apply -f k8s/namespaces.yaml
-kubectl apply -f k8s/flask-app-dev.yaml
-kubectl apply -f k8s/dev-ingress.yaml
+kubectl apply -f k8s/apps/dev/flask-app-dev.yaml
+kubectl apply -f k8s/apps/dev/dev-ingress.yaml
 ```
 
 ### 6. Configure CI
