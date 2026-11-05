@@ -1,36 +1,97 @@
 name: Build and Push to ECR
 
+# Setup needed in GitHub (Settings -> Secrets and variables -> Actions -> Variables):
+#   AWS_ROLE_ARN  (required) ARN of the IAM role this workflow may assume via OIDC
+#   AWS_REGION    (optional) defaults to us-east-1
+# Until AWS_ROLE_ARN exists, the publish job is skipped instead of failing.
+
 on:
   push:
     branches:
       - main
+    paths:
+      - 'app/**'
+  workflow_dispatch:
 
-permissions:
-  id-token: write # Required for requesting the OIDC JWT token from GitHub
-  contents: read  # Required for actions/checkout
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+  ECR_REPOSITORY: innovate-inc-app-dev
+
+# No permissions by default; each job asks only for what it needs.
+permissions: {}
+
+# Runs queue instead of racing on the manifest commit.
+concurrency:
+  group: build-and-push
+  cancel-in-progress: false
 
 jobs:
-  build-and-push:
+  scan:
+    name: Scan image (report only)
     runs-on: ubuntu-latest
+    # Read-only: no AWS access, no write token. A compromised scanner finds nothing to steal.
+    permissions:
+      contents: read
     steps:
-      - name: Checkout repository
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build image for scanning
+        run: docker build -t scan-target:${{ github.sha }} ./app
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: scan-target:${{ github.sha }}
+          format: table
+          exit-code: '0'
+          severity: CRITICAL,HIGH
+
+  publish:
+    name: Build, push and update manifest
+    runs-on: ubuntu-latest
+    if: "${{ vars.AWS_ROLE_ARN != '' }}"
+    permissions:
+      id-token: write   # OIDC login to AWS
+      contents: write   # commit the new image tag to the manifest
+    steps:
+      - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Configure AWS Credentials via OIDC
+      - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
-          role-to-assume: arn:aws:iam::811165582680:role/GitHubActionsOIDC-TerraformRole
-          aws-region: us-east-1
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
 
-      - name: Build, tag, and push image to Amazon ECR
+      - name: Build and push image
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          REPOSITORY: innovate-inc-app-dev
-          IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
-          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+          docker build -t "$REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA" ./app
+          docker push "$REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA"
+
+      - name: Point dev manifest at the new image
+        env:
+          IMAGE: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+        run: |
+          manifest=k8s/apps/dev/flask-app-dev.yaml
+          [ "$(grep -cE '^[[:space:]]*image:' "$manifest")" = "1" ] || { echo "::error::expected exactly one image line in $manifest"; exit 1; }
+          sed -i -E "s#^([[:space:]]*image:[[:space:]]*).+\$#\1${IMAGE}#" "$manifest"
+          grep -q "${GITHUB_SHA}" "$manifest" || { echo "::error::manifest was not updated"; exit 1; }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "Manifest already at ${GITHUB_SHA}; nothing to commit"
+          else
+            git add "$manifest"
+            git commit -m "ci: deploy ${GITHUB_SHA::7} to dev [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
