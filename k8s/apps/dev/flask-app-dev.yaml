@@ -21,7 +21,7 @@ spec:
           ports:
             - containerPort: 5000
           env:
-            - name: ENVIRONMENT
+            - name: APP_ENV
               value: "dev"
             - name: DB_PASSWORD
               valueFrom:
