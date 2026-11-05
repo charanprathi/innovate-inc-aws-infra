@@ -73,7 +73,7 @@ resource "helm_release" "alb_controller" {
   
   set {
     name  = "vpcId"
-    value = "vpc-04d75110c4d4f831a" 
+    value = data.aws_eks_cluster.eks.vpc_config[0].vpc_id 
   }
   
   set {
