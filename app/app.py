@@ -14,7 +14,7 @@ logger = logging.getLogger("innovate-api")
 
 app = Flask(__name__)
 
-DB_HOST = os.environ.get("DB_HOST", "innovate-dev-db.cmho0428anv7.us-east-1.rds.amazonaws.com")
+DB_HOST = os.environ.get("DB_HOST", "postgres-svc")
 DB_NAME = os.environ.get("DB_NAME", "innovate_dev")
 DB_USER = os.environ.get("DB_USER", "dbadmin")
 DB_PASSWORD = os.environ.get("DB_PASSWORD")
