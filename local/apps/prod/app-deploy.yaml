@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: innovate-app
+  namespace: prod
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: innovate-app
+  template:
+    metadata:
+      labels:
+        app: innovate-app
+    spec:
+      containers:
+      - name: app
+        image: innovate-app:prod
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5000
+        env:
+        - name: DB_HOST
+          value: postgres-svc
+        - name: DB_NAME
+          value: innovate_prod
+        - name: DB_USER
+          value: dbadmin
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: DB_PASSWORD
+        - name: APP_ENV
+          value: production
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: innovate-app-svc
+  namespace: prod
+spec:
+  ports:
+  - port: 80
+    targetPort: 5000
+  selector:
+    app: innovate-app
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: innovate-app-ingress
+  namespace: prod
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: prod.emergencydashboard.online
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: innovate-app-svc
+            port:
+              number: 80
