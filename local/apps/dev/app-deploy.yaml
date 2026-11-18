@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: app
-        image: innovate-app:local
+        image: ghcr.io/charanprathi/innovate-app:87fb6b810d11de84efb79cb7d416a302b5fcbff1
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5000
